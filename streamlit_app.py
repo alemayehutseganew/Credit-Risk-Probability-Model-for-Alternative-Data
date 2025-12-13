@@ -27,7 +27,7 @@ import uuid
 # Use secrets or env vars for production, fallback to the deployed Render API
 import os
 API_URL = os.getenv("API_URL", "https://credit-risk-probability-model-for.onrender.com/predict")
-DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
 MODEL_REGISTRY_NAME = "credit-risk-model-best-model"
 
 # ============================================================
@@ -47,19 +47,23 @@ st.markdown("---")
 # MLFLOW SIDEBAR
 # ============================================================
 st.sidebar.title("🔍 MLOps Dashboard")
-mlflow_uri = st.sidebar.text_input("MLflow Tracking URI", DEFAULT_MLFLOW_URI)
-mlflow.set_tracking_uri(mlflow_uri)
+mlflow_uri = st.sidebar.text_input("MLflow Tracking URI", DEFAULT_MLFLOW_URI, placeholder="http://localhost:5000")
 
 # Connect to MLflow
 client = None
-try:
-    client = MlflowClient()
-    # Test connection
-    client.search_experiments(max_results=1)
-    st.sidebar.success("✅ Connected to MLflow")
-except Exception as e:
-    st.sidebar.error(f"❌ MLflow Connection Failed: {e}")
-    client = None
+if mlflow_uri:
+    mlflow.set_tracking_uri(mlflow_uri)
+    try:
+        client = MlflowClient()
+        # Test connection
+        client.search_experiments(max_results=1)
+        st.sidebar.success("✅ Connected to MLflow")
+    except Exception as e:
+        st.sidebar.warning(f"⚠️ Could not connect to MLflow at {mlflow_uri}")
+        st.sidebar.caption(f"Error: {str(e)}")
+        client = None
+else:
+    st.sidebar.info("Enter an MLflow URI to enable MLOps features.")
 
 if client:
     st.sidebar.markdown("---")
