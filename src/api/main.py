@@ -44,10 +44,17 @@ CATEGORICAL_INPUTS = ['primary_channel', 'primary_category', 'primary_currency',
 
 
 def build_model_uri() -> str:
-    """Compose model URI from env or registry defaults."""
+    """Compose model URI from env, local path, or registry defaults."""
 
     if CUSTOM_MODEL_URI:
         return CUSTOM_MODEL_URI
+    
+    # Check for local model first (preferred for container deployment)
+    local_model_path = Path("models") / MODEL_NAME
+    if local_model_path.exists():
+        logger.info(f"Found local model at {local_model_path}")
+        return str(local_model_path)
+
     return f"models:/{MODEL_NAME}/{MODEL_STAGE}"
 
 
