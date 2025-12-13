@@ -24,9 +24,9 @@ import uuid
 # ============================================================
 # CONFIGURATION
 # ============================================================
-# Use secrets or env vars for production, fallback to localhost for dev
+# Use secrets or env vars for production, fallback to the deployed Render API
 import os
-API_URL = os.getenv("API_URL", "http://localhost:8001/predict")
+API_URL = os.getenv("API_URL", "https://credit-risk-probability-model-for.onrender.com/predict")
 DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 MODEL_REGISTRY_NAME = "credit-risk-model-best-model"
 
