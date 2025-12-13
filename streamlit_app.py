@@ -60,6 +60,8 @@ if mlflow_uri:
         st.sidebar.success("✅ Connected to MLflow")
     except Exception as e:
         st.sidebar.warning(f"⚠️ Could not connect to MLflow at {mlflow_uri}")
+        if "localhost" in mlflow_uri or "127.0.0.1" in mlflow_uri:
+            st.sidebar.info("💡 'localhost' will not work on the cloud. If you are deploying this app, clear the MLflow URI or use a public server.")
         st.sidebar.caption(f"Error: {str(e)}")
         client = None
 else:
