@@ -52,18 +52,21 @@ mlflow_uri = st.sidebar.text_input("MLflow Tracking URI", DEFAULT_MLFLOW_URI, pl
 # Connect to MLflow
 client = None
 if mlflow_uri:
-    mlflow.set_tracking_uri(mlflow_uri)
-    try:
-        client = MlflowClient()
-        # Test connection
-        client.search_experiments(max_results=1)
-        st.sidebar.success("✅ Connected to MLflow")
-    except Exception as e:
-        st.sidebar.warning(f"⚠️ Could not connect to MLflow at {mlflow_uri}")
-        if "localhost" in mlflow_uri or "127.0.0.1" in mlflow_uri:
-            st.sidebar.info("💡 'localhost' will not work on the cloud. If you are deploying this app, clear the MLflow URI or use a public server.")
-        st.sidebar.caption(f"Error: {str(e)}")
-        client = None
+    # Check for localhost in cloud environment
+    if "localhost" in mlflow_uri or "127.0.0.1" in mlflow_uri:
+        st.sidebar.warning("⚠️ 'localhost' will not work on the cloud.")
+        st.sidebar.info("To use MLflow here, you need a public MLflow server (e.g., DagsHub, Databricks). Otherwise, clear the URI field.")
+    else:
+        mlflow.set_tracking_uri(mlflow_uri)
+        try:
+            client = MlflowClient()
+            # Test connection
+            client.search_experiments(max_results=1)
+            st.sidebar.success("✅ Connected to MLflow")
+        except Exception as e:
+            st.sidebar.warning(f"⚠️ Could not connect to MLflow at {mlflow_uri}")
+            st.sidebar.caption(f"Error: {str(e)}")
+            client = None
 else:
     st.sidebar.info("Enter an MLflow URI to enable MLOps features.")
 

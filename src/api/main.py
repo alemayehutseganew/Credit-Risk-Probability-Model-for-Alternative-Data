@@ -174,10 +174,19 @@ async def lifespan(app: FastAPI):
     try:
         model_uri = build_model_uri()
         logger.info("Loading model from %s", model_uri)
-        model = mlflow.sklearn.load_model(model_uri)
+        
+        # Try loading directly with joblib if it's a local directory with model.pkl
+        # This avoids MLflow version compatibility issues
+        local_pkl_path = Path(model_uri) / "model.pkl"
+        if Path(model_uri).exists() and local_pkl_path.exists():
+            logger.info("Loading model directly from pickle: %s", local_pkl_path)
+            model = joblib.load(local_pkl_path)
+        else:
+            model = mlflow.sklearn.load_model(model_uri)
+            
         logger.info("Model loaded successfully")
     except Exception as exc:
-        logger.warning("Could not load model from MLflow: %s", exc)
+        logger.warning("Could not load model: %s", exc)
         model = None
 
     try:
