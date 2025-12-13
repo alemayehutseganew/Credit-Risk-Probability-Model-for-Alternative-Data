@@ -312,7 +312,7 @@ async def model_info():
     
     return {
         "model_type": type(model).__name__,
-        "model_uri": MODEL_URI,
+        "model_uri": build_model_uri(),
         "feature_count": len(feature_columns),
         "categorical_inputs": CATEGORICAL_INPUTS,
         "available_methods": [m for m in dir(model) if not m.startswith('_')]
