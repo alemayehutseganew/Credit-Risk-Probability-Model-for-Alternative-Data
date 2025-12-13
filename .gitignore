@@ -75,7 +75,7 @@ venv.bak/
 
 # Data
 data/raw/
-data/processed/
+# data/processed/
 
 # MLflow
 mlruns/

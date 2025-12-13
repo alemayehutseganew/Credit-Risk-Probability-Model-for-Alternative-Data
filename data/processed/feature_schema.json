@@ -1,0 +1,30 @@
+{
+  "features": [
+    "Recency",
+    "Frequency",
+    "Monetary",
+    "total_amount",
+    "avg_amount",
+    "std_amount",
+    "min_amount",
+    "max_amount",
+    "transaction_count",
+    "total_value",
+    "avg_value",
+    "std_value",
+    "min_value",
+    "max_value",
+    "debit_ratio",
+    "credit_ratio",
+    "transaction_hour_mean",
+    "transaction_day_mean",
+    "transaction_month_mean",
+    "transaction_year_mean",
+    "transaction_dayofweek_mean",
+    "weekend_transaction_ratio",
+    "primary_channel_woe",
+    "primary_category_woe",
+    "primary_currency_woe",
+    "primary_pricing_woe"
+  ]
+}
