@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import joblib
 import numpy as np
@@ -217,7 +217,7 @@ class ProcessedDataset:
     y_test: pd.Series
     feature_columns: List[str]
     woe_mappings: Dict[str, Dict[str, float]]
-    preprocessor: Pipeline | None = None
+    preprocessor: Optional[Pipeline] = None
 
 
 class CreditRiskDataPipeline:
@@ -234,7 +234,7 @@ class CreditRiskDataPipeline:
     CATEGORICAL_FEATURES = ['primary_channel', 'primary_category', 'primary_currency', 'primary_pricing']
 
     def __init__(self, raw_path: Path = RAW_DATA_PATH, processed_dir: Path = PROCESSED_DIR,
-                 snapshot_date: datetime | None = None, random_state: int = DEFAULT_RANDOM_STATE):
+                 snapshot_date: Optional[datetime] = None, random_state: int = DEFAULT_RANDOM_STATE):
         self.raw_path = Path(raw_path)
         self.processed_dir = Path(processed_dir)
         self.snapshot_date = snapshot_date
@@ -456,7 +456,7 @@ class CreditRiskDataPipeline:
 
 def run_data_processing_pipeline(raw_path: Path = RAW_DATA_PATH,
                                  processed_dir: Path = PROCESSED_DIR,
-                                 snapshot_date: datetime | None = None) -> ProcessedDataset:
+                                 snapshot_date: Optional[datetime] = None) -> ProcessedDataset:
     """Convenience wrapper that executes the full feature pipeline"""
     pipeline = CreditRiskDataPipeline(raw_path=raw_path, processed_dir=processed_dir, snapshot_date=snapshot_date)
     transactions = pipeline.load_transactions()
