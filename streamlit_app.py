@@ -24,8 +24,10 @@ import uuid
 # ============================================================
 # CONFIGURATION
 # ============================================================
-API_URL = "http://localhost:8001/predict"
-DEFAULT_MLFLOW_URI = "http://localhost:5000"
+# Use secrets or env vars for production, fallback to localhost for dev
+import os
+API_URL = os.getenv("API_URL", "http://localhost:8001/predict")
+DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 MODEL_REGISTRY_NAME = "credit-risk-model-best-model"
 
 # ============================================================
