@@ -401,36 +401,12 @@ GitHub Actions workflow automatically:
 4. Develop time-series models for dynamic risk assessment
 5. Add explainability features (SHAP values for predictions)
 
-## Contributing
 
-Team Members:
-- Kerod
-- Mahbubah
-- Filimon
 
-## References
 
-**Credit Risk Fundamentals:**
-- [Basel II Capital Accord](https://www.bis.org/publ/bcbs128.htm)
-- [Alternative Credit Scoring - HKMA](https://www.hkma.gov.hk/media/eng/doc/key-functions/financial-infrastructure/alternative_credit_scoring.pdf)
-- [Credit Scoring Approaches - World Bank](https://thedocs.worldbank.org/en/doc/935891585869698451-0130022020/original/CREDITSCORINGAPPROACHESGUIDELINESFINALWEB.pdf)
 
-**Feature Engineering:**
-- [Weight of Evidence and Information Value](https://en.wikipedia.org/wiki/Weight_of_evidence)
-- [xverse Python Package](https://github.com/scoring-ai/xverse)
 
-**MLOps & Deployment:**
-- [MLflow Documentation](https://mlflow.org/docs/latest/index.html)
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 
-## License
-
-This project is created for 10Academy's AI Mastery Program.
-
-## Contact
-
-For questions or support, reach out to the team through the course Slack channel: **#all-week-4**
 
 ---
 
