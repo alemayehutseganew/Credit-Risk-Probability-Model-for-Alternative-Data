@@ -82,7 +82,7 @@ mlruns/
 .mlflow/
 
 # Models
-models/
+# models/
 *.pkl
 *.joblib
 
