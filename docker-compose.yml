@@ -24,8 +24,8 @@ services:
       sh -c "pip install mlflow && \
       mlflow server \
         --host 0.0.0.0 --port 5000 \
-        --backend-store-uri ${BACKEND_STORE_URI} \
-        --default-artifact-root ${DEFAULT_ARTIFACT_ROOT}"
+        --backend-store-uri $${BACKEND_STORE_URI} \
+        --default-artifact-root $${DEFAULT_ARTIFACT_ROOT}"
     ports:
       - "5000:5000"
     volumes:
@@ -33,3 +33,16 @@ services:
     environment:
       - BACKEND_STORE_URI=sqlite:////mlflow/mlflow.db
       - DEFAULT_ARTIFACT_ROOT=/mlflow/artifacts
+
+  streamlit:
+    build: .
+    container_name: credit-risk-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000/predict
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - api
+    command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+

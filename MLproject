@@ -1,0 +1,8 @@
+name: credit-risk-model
+
+# Use the current environment (or specify conda.yaml if you want isolation)
+# For local dev with existing venv, we can omit conda_env or use it with --env-manager=local
+
+entry_points:
+  main:
+    command: "python -m src.train"

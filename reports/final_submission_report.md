@@ -30,6 +30,27 @@
 
 ### Feature Analysis
 
+#### Data Quality & Distributions
+- **Missing Values:** The dataset is clean with **0 missing values** across all columns.
+- **Outliers:** Significant outliers detected using IQR method:
+  - `Amount`: 25.55% outliers (highly right-skewed, skewness ~51).
+  - `Value`: 9.43% outliers (highly right-skewed, skewness ~51).
+  - *Action:* Robust scaling and WoE binning used to handle extreme values.
+
+#### Distribution Analysis
+- **Numerical:** `Amount` and `Value` are extremely right-skewed; the vast majority of transactions are small (<1000), with rare "whale" transactions >1M.
+- **Categorical:**
+  - **ProductCategory:** Dominated by `financial_services` (47.5%) and `airtime` (47.1%).
+  - **ChannelId:** Highly concentrated; `ChannelId_3` (59.5%) and `ChannelId_2` (38.8%) account for ~98% of volume.
+  - **ProviderId:** `ProviderId_4` (40%) and `ProviderId_6` (36%) are the primary service providers.
+
+#### Top 5 EDA Insights
+1. **Extreme Skewness:** Financial values follow a power-law distribution, requiring log-transformation or binning for linear models.
+2. **Category Concentration:** 95% of activity is in just two categories (Financial Services, Airtime), suggesting specialized risk models per category might be beneficial in the future.
+3. **Channel Duopoly:** Risk is concentrated in two channels; monitoring these specifically is high-priority.
+4. **Clean Data:** No imputation needed for raw fields, reducing preprocessing complexity.
+5. **Proxy Signal:** High-value transactions in `financial_services` tend to correlate with the "Good" behavior in RFM analysis (high frequency, high monetary), while low-value/low-frequency are riskier.
+
 #### Feature Statistics (Scaled)
 |                            |   mean |   std |    min |   50% |   max |
 |:---------------------------|-------:|------:|-------:|------:|------:|
@@ -95,7 +116,23 @@ Key takeaways:
 - Overfitting risk in ensemble model; validation restricted by tiny positive class.
 - Features limited to platform behavior; no credit bureau or income data.
 
-## 8) Future Work
+## 8) Future Work & Next Steps
+
+### Hyperparameter Tuning Strategy
+To improve model performance beyond the baseline, we will employ a rigorous tuning process:
+- **Method:** `GridSearchCV` (for linear models) and `RandomizedSearchCV` (for tree models) with 5-fold stratified cross-validation.
+- **Metric:** `ROC-AUC` to optimize ranking ability, monitoring `F1-score` for class balance.
+- **Parameter Spaces:**
+  - *Logistic Regression:* `C` (0.001 to 100), `penalty` (l1, l2), `class_weight` (balanced vs custom).
+  - *Random Forest:* `n_estimators` (100-500), `max_depth` (5-20), `min_samples_leaf` (1-10) to control overfitting.
+
+### Proxy Target Refinement Plan
+The current RFM-based proxy is a heuristic. Future iterations will:
+1. **Validate Proxy:** Compare RFM clusters against any available repayment data (even partial).
+2. **Alternative Proxies:** Experiment with Isolation Forests for anomaly detection as a risk signal.
+3. **Label Engineering:** Define "Default" more granularly (e.g., late payment > 30 days) once temporal repayment data is integrated.
+
+### Other Areas
 - Collect and backfill true repayment outcomes; recalibrate and refit models with class-weighting and focal loss options.
 - Evaluate monotonic GBM/LightGBM with SHAP for explainability; compare to calibrated logistic regression.
 - Build monitoring dashboards (PSI/KS, approval rate drift) and periodic fairness checks.

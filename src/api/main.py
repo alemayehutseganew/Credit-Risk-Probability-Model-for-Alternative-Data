@@ -36,48 +36,61 @@ feature_columns: List[str] = []
 woe_mappings: Dict[str, Dict[str, float]] = {}
 mlflow_client: Optional[MlflowClient] = None
 
-TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI')
+
+# Robust environment variable handling with defaults and logging
+TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI', 'http://localhost:5000')
 MODEL_NAME = os.getenv('MLFLOW_MODEL_NAME', 'credit-risk-model-best-model')
 MODEL_STAGE = os.getenv('MLFLOW_MODEL_STAGE', 'Production')
 CUSTOM_MODEL_URI = os.getenv('MLFLOW_MODEL_URI')
 CATEGORICAL_INPUTS = ['primary_channel', 'primary_category', 'primary_currency', 'primary_pricing']
 
+logger.info(f"MLflow Tracking URI: {TRACKING_URI}")
+logger.info(f"Model Name: {MODEL_NAME}, Stage: {MODEL_STAGE}")
+if CUSTOM_MODEL_URI:
+    logger.info(f"Custom Model URI: {CUSTOM_MODEL_URI}")
+
+
 
 def build_model_uri() -> str:
     """Compose model URI from env, local path, or registry defaults."""
-
+    # 1. Use explicit override if provided
     if CUSTOM_MODEL_URI:
+        logger.info(f"Using custom model URI: {CUSTOM_MODEL_URI}")
         return CUSTOM_MODEL_URI
-    
-    # Check for local model first (preferred for container deployment)
-    local_model_path = Path("models") / MODEL_NAME
+    # 2. Prefer local model directory if present (for Docker/local dev)
+    local_model_path = Path(__file__).resolve().parents[2] / "models" / MODEL_NAME
     if local_model_path.exists():
         logger.info(f"Found local model at {local_model_path}")
         return str(local_model_path)
+    # 3. Fallback to MLflow registry URI
+    registry_uri = f"models:/{MODEL_NAME}/{MODEL_STAGE}"
+    logger.info(f"Using MLflow registry URI: {registry_uri}")
+    return registry_uri
 
-    return f"models:/{MODEL_NAME}/{MODEL_STAGE}"
 
 
 def load_feature_metadata(run_id: Optional[str] = None) -> None:
     """Load feature schema, WoE mappings, and preprocessor from local artifacts or registry run artifacts."""
-
     global feature_columns, woe_mappings, preprocessor
 
     def _safe_read(path: Path) -> dict:
         if path.exists():
+            logger.info(f"Loading metadata from {path}")
             return json.loads(path.read_text())
+        logger.warning(f"Metadata file not found: {path}")
         return {}
 
+    # Try local artifacts first (Docker and local dev)
     feature_schema = _safe_read(FEATURE_SCHEMA_PATH)
     woe_mapping_data = _safe_read(WOE_MAPPING_PATH)
-    
     if PREPROCESSOR_PATH.exists():
         try:
             preprocessor = joblib.load(PREPROCESSOR_PATH)
             logger.info("Loaded preprocessor from local path")
         except Exception as e:
-            logger.warning("Failed to load local preprocessor: %s", e)
+            logger.warning(f"Failed to load local preprocessor: {e}")
 
+    # If any artifact missing, try MLflow registry (for cloud/remote runs)
     if (not feature_schema or not woe_mapping_data or preprocessor is None) and run_id and mlflow_client:
         tmp_dir = Path(tempfile.mkdtemp(prefix="metadata_"))
         try:
@@ -91,7 +104,6 @@ def load_feature_metadata(run_id: Optional[str] = None) -> None:
                 artifact_path="metadata/woe_mappings.json",
                 dst_path=tmp_dir,
             )
-            # Try to download preprocessor if not found locally
             if preprocessor is None:
                 pp_path = mlflow.artifacts.download_artifacts(
                     run_id=run_id,
@@ -99,18 +111,18 @@ def load_feature_metadata(run_id: Optional[str] = None) -> None:
                     dst_path=tmp_dir,
                 )
                 preprocessor = joblib.load(pp_path)
-                
             feature_schema = json.loads(Path(fs_path).read_text())
             woe_mapping_data = json.loads(Path(wm_path).read_text())
-        except Exception as exc:  # pragma: no cover - defensive fallback
-            logger.warning("Could not download feature metadata from MLflow: %s", exc)
+            logger.info("Loaded feature metadata from MLflow registry")
+        except Exception as exc:
+            logger.warning(f"Could not download feature metadata from MLflow: {exc}")
 
     feature_columns = feature_schema.get('features', [])
     if not feature_columns:
+        logger.error("Feature schema is empty. Check that feature_schema.json is present and valid.")
         raise ValueError("Feature schema is empty")
-
     woe_mappings = woe_mapping_data
-    logger.info("Loaded %s feature columns and %s WoE mappings", len(feature_columns), len(woe_mappings))
+    logger.info(f"Loaded {len(feature_columns)} feature columns and {len(woe_mappings)} WoE mappings")
     if preprocessor:
         logger.info("Preprocessor loaded successfully")
     else:
@@ -164,29 +176,29 @@ async def lifespan(app: FastAPI):
 
     global model, mlflow_client
 
-    if TRACKING_URI:
-        mlflow.set_tracking_uri(TRACKING_URI)
-        logger.info("Using MLflow tracking URI: %s", TRACKING_URI)
+
+    # Always set tracking URI (default is localhost:5000)
+    mlflow.set_tracking_uri(TRACKING_URI)
+    logger.info(f"Using MLflow tracking URI: {TRACKING_URI}")
     mlflow_client = MlflowClient()
 
     registry_run_id = _resolve_registry_run_id()
 
+
     try:
         model_uri = build_model_uri()
-        logger.info("Loading model from %s", model_uri)
-        
+        logger.info(f"Loading model from {model_uri}")
         # Try loading directly with joblib if it's a local directory with model.pkl
-        # This avoids MLflow version compatibility issues
         local_pkl_path = Path(model_uri) / "model.pkl"
         if Path(model_uri).exists() and local_pkl_path.exists():
-            logger.info("Loading model directly from pickle: %s", local_pkl_path)
+            logger.info(f"Loading model directly from pickle: {local_pkl_path}")
             model = joblib.load(local_pkl_path)
         else:
+            # Fallback to MLflow loader (works for registry URIs)
             model = mlflow.sklearn.load_model(model_uri)
-            
         logger.info("Model loaded successfully")
     except Exception as exc:
-        logger.warning("Could not load model: %s", exc)
+        logger.error(f"Could not load model: {exc}")
         model = None
 
     try:
