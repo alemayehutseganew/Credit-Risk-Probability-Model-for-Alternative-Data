@@ -233,8 +233,8 @@ if st.button("🔮 Get Prediction", use_container_width=True):
         "primary_currency": primary_currency,
         "primary_pricing": primary_pricing
     }
-    
-        with st.spinner(f"Calling the model API at {API_URL}..."):
+
+    with st.spinner(f"Calling the model API at {API_URL}..."):
         try:
             response = requests.post(API_URL, json=payload, timeout=10)
             response.raise_for_status()
