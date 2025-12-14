@@ -26,7 +26,7 @@ import uuid
 # ============================================================
 # Use secrets or env vars for production, fallback to the deployed Render API
 import os
-API_URL = os.getenv("API_URL", "https://credit-risk-probability-model-for.onrender.com/predict")
+API_URL = os.getenv("API_URL", "http://localhost:8000/predict")
 DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
 MODEL_REGISTRY_NAME = "credit-risk-model-best-model"
 
@@ -48,6 +48,12 @@ st.markdown("---")
 # ============================================================
 st.sidebar.title("🔍 MLOps Dashboard")
 mlflow_uri = st.sidebar.text_input("MLflow Tracking URI", DEFAULT_MLFLOW_URI, placeholder="http://localhost:5000")
+
+# API endpoint selector (allows switching between local, docker, or production)
+st.sidebar.title("🔗 API Endpoint")
+api_override = st.sidebar.text_input("API URL (override)", value=os.getenv("API_URL", ""), placeholder="http://localhost:8000/predict")
+if api_override:
+    API_URL = api_override.strip()
 
 # Connect to MLflow
 client = None

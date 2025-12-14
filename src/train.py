@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from pathlib import Path
 
 import joblib
@@ -30,6 +31,14 @@ MLFLOW_MODEL_REQUIREMENTS = [
 ]
 
 logger = logging.getLogger(__name__)
+
+# Set MLflow tracking URI to a local directory to avoid permission issues
+mlflow.set_tracking_uri("./mlruns")
+
+# Diagnostic: Print MLflow and artifact-related environment variables
+for key, value in os.environ.items():
+    if 'MLFLOW' in key or 'ARTIFACT' in key or 'REGISTRY' in key:
+        print(f"ENV {key}={value}")
 
 
 def _read_json(path: Path) -> dict:
@@ -265,6 +274,7 @@ def train_and_track_models(
     
     results = {}
     best_run = {'roc_auc': -np.inf, 'run_id': None, 'model_uri': None, 'model_name': None}
+    best_model_obj = None
     
     minority_class_count = int(y_train.value_counts().min())
     cv_folds = max(2, min(5, minority_class_count))
@@ -335,6 +345,9 @@ def train_and_track_models(
                     'model_uri': model_uri,
                     'model_name': model_name,
                 }
+                # Keep a reference to the actual trained model object so we can
+                # persist it locally for the API to load without contacting MLflow
+                best_model_obj = trainer.best_model
             
             results[model_name] = trainer.results
     
@@ -347,6 +360,18 @@ def train_and_track_models(
             best_run['roc_auc'],
             registry_name,
         )
+
+    # Persist best model locally so the API can load it from disk without
+    # requiring a running MLflow server or registry.
+    try:
+        if best_model_obj is not None:
+            model_dir = Path("models") / "credit-risk-model-best-model"
+            model_dir.mkdir(parents=True, exist_ok=True)
+            local_pkl = model_dir / "model.pkl"
+            joblib.dump(best_model_obj, local_pkl)
+            logger.info("Saved best model to %s", local_pkl)
+    except Exception as exc:
+        logger.warning("Failed to save local best model: %s", exc)
 
     return results
 
