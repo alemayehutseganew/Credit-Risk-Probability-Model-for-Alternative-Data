@@ -24,9 +24,10 @@ import uuid
 # ============================================================
 # CONFIGURATION
 # ============================================================
-# Use secrets or env vars for production, fallback to the deployed Render API
+# Use secrets or env vars for production, fallback to localhost for development
 import os
-API_URL = os.getenv("API_URL", "http://localhost:8000/predict")
+API_BASE = os.getenv("API_URL", "http://localhost:8000")
+API_URL = API_BASE.rstrip('/') + '/predict'
 DEFAULT_MLFLOW_URI = os.getenv("MLFLOW_TRACKING_URI", "")
 MODEL_REGISTRY_NAME = "credit-risk-model-best-model"
 
@@ -51,9 +52,21 @@ mlflow_uri = st.sidebar.text_input("MLflow Tracking URI", DEFAULT_MLFLOW_URI, pl
 
 # API endpoint selector (allows switching between local, docker, or production)
 st.sidebar.title("🔗 API Endpoint")
-api_override = st.sidebar.text_input("API URL (override)", value=os.getenv("API_URL", ""), placeholder="http://localhost:8000/predict")
+api_override = st.sidebar.text_input("API URL (override)", value=os.getenv("API_URL", ""), placeholder="http://localhost:8000 or https://api.example.com")
 if api_override:
-    API_URL = api_override.strip()
+    API_BASE = api_override.strip()
+    API_URL = API_BASE.rstrip('/') + '/predict'
+
+# Lightweight health check for the configured API
+health_url = API_BASE.rstrip('/') + '/health'
+try:
+    resp = requests.get(health_url, timeout=3)
+    if resp.ok:
+        st.sidebar.success(f"API OK: {health_url}")
+    else:
+        st.sidebar.warning(f"API reachable but returned {resp.status_code}: {health_url}")
+except Exception:
+    st.sidebar.error(f"Cannot reach API at {health_url}. Update `API_URL` or deploy the API publicly.")
 
 # Connect to MLflow
 client = None
@@ -221,7 +234,7 @@ if st.button("🔮 Get Prediction", use_container_width=True):
         "primary_pricing": primary_pricing
     }
     
-    with st.spinner("Calling the model API..."):
+        with st.spinner(f"Calling the model API at {API_URL}..."):
         try:
             response = requests.post(API_URL, json=payload, timeout=10)
             response.raise_for_status()
@@ -273,7 +286,7 @@ if st.button("🔮 Get Prediction", use_container_width=True):
                 st.json(result)
                 
         except requests.exceptions.ConnectionError:
-            st.error("❌ Cannot connect to API. Is FastAPI running on http://localhost:8000?")
+            st.error(f"❌ Cannot connect to API at {API_URL}. If you're running this in the cloud, set the API URL to your deployed FastAPI (for example, https://credit-risk-probability-model-for.onrender.com).")
         except requests.exceptions.HTTPError as e:
              st.error(f"❌ API Error: {e}")
              if e.response is not None:
