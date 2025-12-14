@@ -1,0 +1,15 @@
+# Exported from Render on 2025-12-14T04:44:55Z
+version: "1"
+services:
+- type: web
+  name: Credit-Risk-Probability-Model-for-Alternative-Data
+  runtime: docker
+  repo: https://github.com/alemayehutseganew/Credit-Risk-Probability-Model-for-Alternative-Data
+  plan: free
+  envVars:
+  - key: PYTHON_VERSION
+    sync: false
+  region: oregon
+  dockerContext: .
+  dockerfilePath: ./Dockerfile
+  autoDeployTrigger: commit
