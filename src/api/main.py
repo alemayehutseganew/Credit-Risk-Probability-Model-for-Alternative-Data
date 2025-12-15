@@ -253,7 +253,7 @@ async def health_check():
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Predictions"])
-async def predict(features: CustomerFeatures):
+async def predict(features: CustomerFeatures, debug: bool = False):
     """
     Predict credit risk and loan recommendations for a customer
     
@@ -277,27 +277,43 @@ async def predict(features: CustomerFeatures):
         )
     try:
         customer_id, X = build_feature_frame(features)
-        
+
         # Make predictions
-        risk_prob = model.predict_proba(X)[0, 1]
+        proba = model.predict_proba(X)[0]
+        risk_prob = float(proba[1])
         risk_category = "high_risk" if risk_prob >= 0.5 else "low_risk"
-        
+
         # Credit score (300-850)
         credit_score = int(300 + (1 - risk_prob) * 550)
-        
+
         # Loan recommendations
         recommended_amount = int(10000 + (1 - risk_prob) * 90000)
         recommended_duration = int(6 + (1 - risk_prob) * 30)
-        
-        return PredictionResponse(
+
+        # Prepare response payload
+        response_payload = dict(
             customer_id=customer_id,
-            risk_probability=float(risk_prob),
+            risk_probability=risk_prob,
             risk_category=risk_category,
             credit_score=credit_score,
             recommended_amount=float(recommended_amount),
             recommended_duration_months=recommended_duration,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
+
+        # Debug: include transformed features and raw predict_proba
+        if debug:
+            try:
+                transformed = X.iloc[0].to_dict()
+            except Exception:
+                transformed = {}
+            response_payload['debug'] = {
+                'transformed_features': transformed,
+                'raw_predict_proba': proba.tolist()
+            }
+            logger.info("Debug prediction for %s: proba=%s, features=%s", customer_id, proba, transformed)
+
+        return PredictionResponse(**response_payload)
     
     except Exception as e:
         logger.error(f"Prediction error: {e}")
