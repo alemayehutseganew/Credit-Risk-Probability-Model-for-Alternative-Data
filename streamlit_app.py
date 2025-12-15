@@ -20,6 +20,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 from datetime import datetime
 import uuid
+import json
 
 # ============================================================
 # CONFIGURATION
@@ -174,6 +175,30 @@ with col3:
 st.markdown("---")
 col4, col5 = st.columns(2)
 
+# Load WoE mappings to populate categorical options and keep UI aligned with preprocessing.
+# If the mappings file isn't available (e.g., running only the UI), fall back to sensible defaults.
+woe_mappings = {}
+try:
+    with open(os.path.join("data", "processed", "woe_mappings.json"), "r", encoding="utf-8") as f:
+        woe_mappings = json.load(f)
+except Exception:
+    woe_mappings = {}
+
+def _safe_options(key, fallback):
+    vals = list(woe_mappings.get(key, {}).keys())
+    return vals if vals else fallback
+
+channel_options = _safe_options(
+    "primary_channel",
+    ["ChannelId_1", "ChannelId_2", "ChannelId_3", "ChannelId_5", "UNKNOWN"],
+)
+category_options = _safe_options(
+    "primary_category",
+    ["airtime", "data_bundles", "financial_services", "movies", "other", "ticket", "transport", "tv", "utility_bill", "UNKNOWN"],
+)
+currency_options = _safe_options("primary_currency", ["UGX", "USD", "EUR", "GBP", "UNKNOWN"])
+pricing_options = _safe_options("primary_pricing", ["0", "1", "2", "4", "UNKNOWN"])
+
 with col4:
     st.subheader("Ratios")
     debit_ratio = st.slider("Debit Ratio", 0.0, 1.0, 0.7)
@@ -189,10 +214,10 @@ with col4:
 
 with col5:
     st.subheader("Categorical Features")
-    primary_channel = st.selectbox("Primary Channel", ["Channel_A", "Channel_B", "Channel_C", "UNKNOWN"])
-    primary_category = st.selectbox("Primary Category", ["Category_X", "Category_Y", "Category_Z", "UNKNOWN"])
-    primary_currency = st.selectbox("Primary Currency", ["USD", "EUR", "GBP", "UNKNOWN"])
-    primary_pricing = st.selectbox("Primary Pricing", ["Standard", "Premium", "Discount", "UNKNOWN"])
+    primary_channel = st.selectbox("Primary Channel", channel_options)
+    primary_category = st.selectbox("Primary Category", category_options)
+    primary_currency = st.selectbox("Primary Currency", currency_options)
+    primary_pricing = st.selectbox("Primary Pricing", pricing_options)
 
 # ============================================================
 # PREDICTION & LOGGING
