@@ -79,7 +79,6 @@ class PredictionResponse(BaseModel):
     recommended_amount: float = Field(..., description="Recommended loan amount")
     recommended_duration_months: int = Field(..., description="Recommended loan duration")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Prediction timestamp")
-    debug: Optional[Dict[str, Any]] = Field(None, description="Optional debug info: transformed features and raw predict_proba")
     
     class Config:
         schema_extra = {

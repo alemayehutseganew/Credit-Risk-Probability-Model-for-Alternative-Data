@@ -17,6 +17,7 @@ import requests
 import streamlit as st
 import pandas as pd
 import mlflow
+from pathlib import Path
 from mlflow.tracking import MlflowClient
 from datetime import datetime
 import uuid
@@ -322,3 +323,30 @@ if st.button("🔮 Get Prediction", use_container_width=True):
 # Footer
 st.markdown("---")
 st.caption("This UI calls the FastAPI model service and tracks experiments via MLflow.")
+
+# ============================================================
+# SHAP EXPLAINABILITY (OPTIONAL)
+# ============================================================
+st.markdown("---")
+st.subheader("Explainability (SHAP)")
+
+fig_dir = Path("reports") / "figures"
+summary_plot = fig_dir / "shap_summary.png"
+waterfall_plot = fig_dir / "shap_waterfall.png"
+
+with st.expander("View SHAP plots"):
+    if summary_plot.exists():
+        st.image(str(summary_plot), caption="Global feature impact (SHAP summary)", use_column_width=True)
+    else:
+        st.info("SHAP summary plot not found. Run `python scripts/generate_shap.py`.")
+
+    if waterfall_plot.exists():
+        st.image(str(waterfall_plot), caption="Local explanation (SHAP waterfall)", use_column_width=True)
+    else:
+        st.info("SHAP waterfall plot not found. Run `python scripts/generate_shap.py`.")
+
+
+
+
+
+

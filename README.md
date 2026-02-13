@@ -1,5 +1,7 @@
 # Credit Risk Probability Model for Alternative Data
 
+[![CI/CD Pipeline](https://github.com/alemayehutseganew/Credit-Risk-Probability-Model-for-Alternative-Data/actions/workflows/ci.yml/badge.svg)](https://github.com/alemayehutseganew/Credit-Risk-Probability-Model-for-Alternative-Data/actions/workflows/ci.yml)
+
 An End-to-End Implementation for Building, Deploying, and Automating a Credit Risk Model for Bati Bank's Buy-Now-Pay-Later Service
 
 ## Overview
@@ -160,6 +162,17 @@ flowchart LR
 This approach balances **regulatory compliance, fairness, and performance** in a way that's appropriate for a financial institution operating under Basel II standards.
 
 ---
+
+## Quick Start
+
+```bash
+git clone https://github.com/<username>/Credit-Risk-Probability-Model-for-Alternative-Data
+cd Credit-Risk-Probability-Model-for-Alternative-Data
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+python src/train.py
+```
 
 ## Project Structure
 
@@ -398,6 +411,27 @@ GitHub Actions workflow automatically:
 1. Incorporate real default labels when available
 2. Add demographic data (age, location, employment)
 3. Implement online learning for continuous model updates
+
+## Explainability (SHAP)
+
+Run the SHAP script after training to generate global and local explanations:
+
+```bash
+python scripts/generate_shap.py
+```
+
+Outputs are saved in `reports/figures/`:
+- `shap_summary.png`
+- `shap_waterfall.png`
+
+## Report
+
+See the Week 12 capstone report in `reports/week12_capstone_report.md`.
+
+## Author
+
+**Alemayehu Tseganew Tadesse**
+- LinkedIn: https://www.linkedin.com/in/alemayehu-tseganew-tadesse
 4. Develop time-series models for dynamic risk assessment
 5. Add explainability features (SHAP values for predictions)
 

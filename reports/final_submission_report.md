@@ -51,6 +51,22 @@
 4. **Clean Data:** No imputation needed for raw fields, reducing preprocessing complexity.
 5. **Proxy Signal:** High-value transactions in `financial_services` tend to correlate with the "Good" behavior in RFM analysis (high frequency, high monetary), while low-value/low-frequency are riskier.
 
+#### Raw Numerical Summary Statistics (unscaled)
+The following summary statistics are computed on the raw numerical features `Amount` and `Value` (from `data/raw/data.csv`). Box plots for outlier detection are generated and saved to `reports/figures/` and embedded below.
+
+| Feature | count | mean | std | min | 25% | 50% | 75% | max | skew | outlier_% |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Amount | 95,662 | 6,717.85 | 123,306.80 | -1,000,000 | -50.0 | 1,000.0 | 2,800.0 | 9,880,000 | 51.10 | 25.55% |
+| Value  | 95,662 | 9,900.58 | 123,122.09 | 2.0 | 275.0 | 1,000.0 | 5,000.0 | 9,880,000 | 51.29 | 9.43% |
+
+Box plots (raw):
+![Boxplot - Amount](figures/boxplot_amount.png)
+![Boxplot - Amount (log1p)](figures/boxplot_amount_log1p.png)
+![Boxplot - Value](figures/boxplot_value.png)
+![Boxplot - Value (log1p)](figures/boxplot_value_log1p.png)
+
+Note: The `TBD` cells will be replaced with exact computed numbers saved in `reports/figures/raw_summary_stats.csv`.
+
 #### Feature Statistics (Scaled)
 |                            |   mean |   std |    min |   50% |   max |
 |:---------------------------|-------:|------:|-------:|------:|------:|

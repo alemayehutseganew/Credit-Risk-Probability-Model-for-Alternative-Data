@@ -5,9 +5,10 @@ import logging
 import os
 import tempfile
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import joblib
 import mlflow
@@ -43,6 +44,22 @@ MODEL_NAME = os.getenv('MLFLOW_MODEL_NAME', 'credit-risk-model-best-model')
 MODEL_STAGE = os.getenv('MLFLOW_MODEL_STAGE', 'Production')
 CUSTOM_MODEL_URI = os.getenv('MLFLOW_MODEL_URI')
 CATEGORICAL_INPUTS = ['primary_channel', 'primary_category', 'primary_currency', 'primary_pricing']
+
+
+@dataclass(frozen=True)
+class ScoringConfig:
+    """Configuration for scoring thresholds and recommendations."""
+
+    threshold: float = 0.5
+    base_score: int = 300
+    max_score: int = 850
+    min_amount: int = 10000
+    max_amount: int = 100000
+    min_months: int = 6
+    max_months: int = 36
+
+
+SCORING_CONFIG = ScoringConfig()
 
 logger.info(f"MLflow Tracking URI: {TRACKING_URI}")
 logger.info(f"Model Name: {MODEL_NAME}, Stage: {MODEL_STAGE}")
@@ -129,7 +146,7 @@ def load_feature_metadata(run_id: Optional[str] = None) -> None:
         logger.warning("Preprocessor not loaded - predictions may be inaccurate")
 
 
-def build_feature_frame(features: CustomerFeatures):
+def build_feature_frame(features: CustomerFeatures) -> Tuple[str, pd.DataFrame]:
     """Transform incoming payload into model-ready dataframe"""
 
     if not feature_columns:
@@ -253,7 +270,7 @@ async def health_check():
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Predictions"])
-async def predict(features: CustomerFeatures, debug: bool = False):
+async def predict(features: CustomerFeatures):
     """
     Predict credit risk and loan recommendations for a customer
     
@@ -277,43 +294,36 @@ async def predict(features: CustomerFeatures, debug: bool = False):
         )
     try:
         customer_id, X = build_feature_frame(features)
-
+        
         # Make predictions
-        proba = model.predict_proba(X)[0]
-        risk_prob = float(proba[1])
-        risk_category = "high_risk" if risk_prob >= 0.5 else "low_risk"
+        risk_prob = model.predict_proba(X)[0, 1]
+        risk_category = "high_risk" if risk_prob >= SCORING_CONFIG.threshold else "low_risk"
 
         # Credit score (300-850)
-        credit_score = int(300 + (1 - risk_prob) * 550)
+        credit_score = int(
+            SCORING_CONFIG.base_score
+            + (1 - risk_prob) * (SCORING_CONFIG.max_score - SCORING_CONFIG.base_score)
+        )
 
         # Loan recommendations
-        recommended_amount = int(10000 + (1 - risk_prob) * 90000)
-        recommended_duration = int(6 + (1 - risk_prob) * 30)
-
-        # Prepare response payload
-        response_payload = dict(
+        recommended_amount = int(
+            SCORING_CONFIG.min_amount
+            + (1 - risk_prob) * (SCORING_CONFIG.max_amount - SCORING_CONFIG.min_amount)
+        )
+        recommended_duration = int(
+            SCORING_CONFIG.min_months
+            + (1 - risk_prob) * (SCORING_CONFIG.max_months - SCORING_CONFIG.min_months)
+        )
+        
+        return PredictionResponse(
             customer_id=customer_id,
-            risk_probability=risk_prob,
+            risk_probability=float(risk_prob),
             risk_category=risk_category,
             credit_score=credit_score,
             recommended_amount=float(recommended_amount),
             recommended_duration_months=recommended_duration,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.utcnow()
         )
-
-        # Debug: include transformed features and raw predict_proba
-        if debug:
-            try:
-                transformed = X.iloc[0].to_dict()
-            except Exception:
-                transformed = {}
-            response_payload['debug'] = {
-                'transformed_features': transformed,
-                'raw_predict_proba': proba.tolist()
-            }
-            logger.info("Debug prediction for %s: proba=%s, features=%s", customer_id, proba, transformed)
-
-        return PredictionResponse(**response_payload)
     
     except Exception as e:
         logger.error(f"Prediction error: {e}")
