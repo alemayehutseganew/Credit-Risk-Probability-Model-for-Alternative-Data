@@ -1,9 +1,12 @@
 """Model training script with hyperparameter tuning and MLflow tracking"""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import mlflow
@@ -41,13 +44,15 @@ for key, value in os.environ.items():
         print(f"ENV {key}={value}")
 
 
-def _read_json(path: Path) -> dict:
+def _read_json(path: Path) -> Dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Expected file missing: {path}")
     return json.loads(path.read_text())
 
 
-def load_training_artifacts(processed_dir: Path = PROCESSED_DIR):
+def load_training_artifacts(
+    processed_dir: Path = PROCESSED_DIR,
+) -> Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, List[str], Dict[str, Dict[str, float]]]:
     """Load processed datasets along with feature schema and WoE mappings"""
 
     processed_dir = Path(processed_dir)
@@ -76,7 +81,13 @@ def load_training_artifacts(processed_dir: Path = PROCESSED_DIR):
 class ModelTrainer:
     """Handle model training, hyperparameter tuning, and evaluation"""
     
-    def __init__(self, model_name, model, param_grid, param_dist=None):
+    def __init__(
+        self,
+        model_name: str,
+        model: Any,
+        param_grid: Dict[str, Any],
+        param_dist: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """
         Initialize model trainer
         
@@ -93,7 +104,13 @@ class ModelTrainer:
         self.best_model = None
         self.results = {}
     
-    def grid_search(self, X_train, y_train, cv=5, n_jobs=-1):
+    def grid_search(
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        cv: int = 5,
+        n_jobs: int = -1,
+    ) -> Dict[str, Any]:
         """
         Perform grid search for hyperparameter tuning
         
@@ -128,7 +145,14 @@ class ModelTrainer:
         
         return self.results['grid_search']
     
-    def random_search(self, X_train, y_train, cv=5, n_iter=20, n_jobs=-1):
+    def random_search(
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        cv: int = 5,
+        n_iter: int = 20,
+        n_jobs: int = -1,
+    ) -> Dict[str, Any]:
         """
         Perform random search for hyperparameter tuning
         
@@ -163,7 +187,7 @@ class ModelTrainer:
         
         return self.results['random_search']
     
-    def evaluate(self, X_test, y_test):
+    def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series) -> Dict[str, float]:
         """
         Evaluate model on test set
         
@@ -193,7 +217,7 @@ class ModelTrainer:
         
         return metrics
     
-    def save_model(self, filepath):
+    def save_model(self, filepath: str) -> None:
         """
         Save trained model to disk
         
@@ -206,7 +230,7 @@ class ModelTrainer:
         joblib.dump(self.best_model, filepath)
         logger.info(f"Model saved to {filepath}")
     
-    def load_model(self, filepath):
+    def load_model(self, filepath: str) -> None:
         """
         Load model from disk
         
@@ -218,14 +242,14 @@ class ModelTrainer:
 
 
 def train_and_track_models(
-    X_train,
-    y_train,
-    X_test,
-    y_test,
-    feature_columns,
-    woe_mappings,
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    feature_columns: List[str],
+    woe_mappings: Dict[str, Dict[str, float]],
     experiment_name: str = 'credit-risk-model',
-):
+) -> Dict[str, Any]:
     """
     Train multiple models and track with MLflow
     
@@ -376,7 +400,7 @@ def train_and_track_models(
     return results
 
 
-def main():
+def main() -> None:
     """Main training pipeline"""
     logging.basicConfig(level=logging.INFO)
     

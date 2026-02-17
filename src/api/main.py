@@ -1,5 +1,7 @@
 """FastAPI application for credit risk model serving"""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -8,7 +10,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 import joblib
 import mlflow
@@ -188,7 +190,7 @@ def _resolve_registry_run_id() -> Optional[str]:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan manager for startup/shutdown."""
 
     global model, mlflow_client
@@ -247,7 +249,7 @@ app.add_middleware(
 
 
 @app.get("/", tags=["Root"])
-async def root():
+async def root() -> Dict[str, str]:
     """Root endpoint"""
     return {
         "message": "Credit Risk Scoring API",
@@ -258,7 +260,7 @@ async def root():
 
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["Health"])
-async def health_check():
+async def health_check() -> HealthCheckResponse:
     """Check API health and model status"""
     status = "healthy" if model is not None else "degraded"
     model_version = "production" if model is not None else "none"
@@ -270,7 +272,7 @@ async def health_check():
 
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Predictions"])
-async def predict(features: CustomerFeatures):
+async def predict(features: CustomerFeatures) -> PredictionResponse:
     """
     Predict credit risk and loan recommendations for a customer
     
@@ -334,7 +336,7 @@ async def predict(features: CustomerFeatures):
 
 
 @app.post("/predict-batch", tags=["Predictions"])
-async def predict_batch(features_list: list[CustomerFeatures]):
+async def predict_batch(features_list: list[CustomerFeatures]) -> Dict[str, Any]:
     """
     Predict credit risk for multiple customers
     """
@@ -349,7 +351,7 @@ async def predict_batch(features_list: list[CustomerFeatures]):
     return {"predictions": results, "count": len(results)}
 
 @app.get("/model-info", tags=["Model"])
-async def model_info():
+async def model_info() -> Dict[str, Any]:
     """Get information about the loaded model"""
     if model is None:
         raise HTTPException(

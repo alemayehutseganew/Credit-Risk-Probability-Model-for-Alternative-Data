@@ -1,15 +1,19 @@
+from __future__ import annotations
+
 import os
-import pandas as pd
+from typing import List
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
+import pandas as pd
+import seaborn as sns
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 RAW_CSV = os.path.join(ROOT, "data", "raw", "data.csv")
 OUT_DIR = os.path.join(ROOT, "reports", "figures")
 os.makedirs(OUT_DIR, exist_ok=True)
 
-def compute_stats(df, cols):
+def compute_stats(df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     stats = df[cols].describe().T
     stats = stats.rename(columns={"50%": "median"})
     stats["skew"] = df[cols].skew()
@@ -25,7 +29,7 @@ def compute_stats(df, cols):
     stats["outlier_%"] = outlier_pct
     return stats
 
-def save_boxplots(df, col, out_dir):
+def save_boxplots(df: pd.DataFrame, col: str, out_dir: str) -> None:
     fname = os.path.join(out_dir, f"boxplot_{col.lower()}.png")
     plt.figure(figsize=(6,4))
     sns.boxplot(x=df[col].dropna())
@@ -43,7 +47,7 @@ def save_boxplots(df, col, out_dir):
     plt.savefig(fname_log)
     plt.close()
 
-def main():
+def main() -> None:
     df = pd.read_csv(RAW_CSV)
     # Ensure numeric
     cols = ["Amount", "Value"]

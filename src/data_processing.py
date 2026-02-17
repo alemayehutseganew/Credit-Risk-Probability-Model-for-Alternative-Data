@@ -2,23 +2,24 @@
 Data processing and feature engineering pipeline for credit risk model
 """
 
+from __future__ import annotations
+
 import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer, KNNImputer
+from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.preprocessing import MinMaxScaler
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ DEFAULT_RANDOM_STATE = 42
 class RFMCalculator:
     """Calculate Recency, Frequency, and Monetary metrics for customers"""
     
-    def __init__(self, snapshot_date=None):
+    def __init__(self, snapshot_date: Optional[datetime] = None) -> None:
         """
         Initialize RFM calculator
         
@@ -49,8 +50,13 @@ class RFMCalculator:
         """
         self.snapshot_date = snapshot_date
     
-    def calculate(self, df, customer_id_col='CustomerId', 
-                  amount_col='Value', date_col='TransactionStartTime'):
+    def calculate(
+        self,
+        df: pd.DataFrame,
+        customer_id_col: str = 'CustomerId',
+        amount_col: str = 'Value',
+        date_col: str = 'TransactionStartTime',
+    ) -> pd.DataFrame:
         """
         Calculate RFM metrics for each customer
         
@@ -87,7 +93,11 @@ class AggregateFeatureEngineer:
     """Create aggregate features from transaction data"""
     
     @staticmethod
-    def create_features(df, customer_id_col='CustomerId', amount_col='Value'):
+    def create_features(
+        df: pd.DataFrame,
+        customer_id_col: str = 'CustomerId',
+        amount_col: str = 'Value',
+    ) -> pd.DataFrame:
         """
         Create aggregate features per customer
         
@@ -132,7 +142,10 @@ class TemporalFeatureEngineer:
     """Extract temporal features from transaction timestamps"""
     
     @staticmethod
-    def create_features(df, date_col='TransactionStartTime'):
+    def create_features(
+        df: pd.DataFrame,
+        date_col: str = 'TransactionStartTime',
+    ) -> pd.DataFrame:
         """
         Extract temporal features
         
@@ -160,7 +173,7 @@ class TemporalFeatureEngineer:
 class CategoricalEncoder:
     """Handle categorical variable encoding"""
     
-    def __init__(self, encoding_type='onehot', low_cardinality_threshold=10):
+    def __init__(self, encoding_type: str = 'onehot', low_cardinality_threshold: int = 10) -> None:
         """
         Initialize encoder
         
@@ -172,7 +185,7 @@ class CategoricalEncoder:
         self.low_cardinality_threshold = low_cardinality_threshold
         self.encoders = {}
     
-    def fit_transform(self, df, categorical_cols):
+    def fit_transform(self, df: pd.DataFrame, categorical_cols: List[str]) -> pd.DataFrame:
         """
         Fit and transform categorical variables
         
@@ -233,8 +246,13 @@ class CreditRiskDataPipeline:
     ]
     CATEGORICAL_FEATURES = ['primary_channel', 'primary_category', 'primary_currency', 'primary_pricing']
 
-    def __init__(self, raw_path: Path = RAW_DATA_PATH, processed_dir: Path = PROCESSED_DIR,
-                 snapshot_date: Optional[datetime] = None, random_state: int = DEFAULT_RANDOM_STATE):
+    def __init__(
+        self,
+        raw_path: Path = RAW_DATA_PATH,
+        processed_dir: Path = PROCESSED_DIR,
+        snapshot_date: Optional[datetime] = None,
+        random_state: int = DEFAULT_RANDOM_STATE,
+    ) -> None:
         self.raw_path = Path(raw_path)
         self.processed_dir = Path(processed_dir)
         self.snapshot_date = snapshot_date
@@ -350,7 +368,12 @@ class CreditRiskDataPipeline:
         return features
 
     @staticmethod
-    def _compute_woe_mapping(df: pd.DataFrame, column: str, target: str, smoothing: float = 0.5) -> Dict[str, float]:
+    def _compute_woe_mapping(
+        df: pd.DataFrame,
+        column: str,
+        target: str,
+        smoothing: float = 0.5,
+    ) -> Dict[str, float]:
         grouped = df.groupby(column)[target].agg(['sum', 'count'])
         grouped['non_event'] = grouped['count'] - grouped['sum']
         grouped['event_dist'] = (grouped['sum'] + smoothing) / (grouped['sum'].sum() + smoothing * len(grouped))
@@ -360,7 +383,11 @@ class CreditRiskDataPipeline:
         grouped['woe'] = np.log((grouped['event_dist']) / (grouped['non_event_dist']))
         return grouped['woe'].to_dict()
 
-    def apply_woe_encoding(self, df: pd.DataFrame, target_col: str = 'is_high_risk') -> tuple[pd.DataFrame, Dict[str, Dict[str, float]]]:
+    def apply_woe_encoding(
+        self,
+        df: pd.DataFrame,
+        target_col: str = 'is_high_risk',
+    ) -> Tuple[pd.DataFrame, Dict[str, Dict[str, float]]]:
         woe_maps: Dict[str, Dict[str, float]] = {}
         encoded_df = df.copy()
         for col in self.CATEGORICAL_FEATURES:
@@ -370,8 +397,12 @@ class CreditRiskDataPipeline:
         encoded_df = encoded_df.drop(columns=self.CATEGORICAL_FEATURES)
         return encoded_df, woe_maps
 
-    def split_scale_dataset(self, encoded_df: pd.DataFrame, woe_maps: Dict[str, Dict[str, float]],
-                            test_size: float = DEFAULT_TEST_SIZE) -> ProcessedDataset:
+    def split_scale_dataset(
+        self,
+        encoded_df: pd.DataFrame,
+        woe_maps: Dict[str, Dict[str, float]],
+        test_size: float = DEFAULT_TEST_SIZE,
+    ) -> ProcessedDataset:
         drop_cols = ['CustomerId', 'is_high_risk']
         feature_columns = [col for col in encoded_df.columns if col not in drop_cols]
 
@@ -410,8 +441,11 @@ class CreditRiskDataPipeline:
             preprocessor=preprocessor,
         )
 
-    def prepare_feature_matrix(self, customer_features: pd.DataFrame,
-                               test_size: float = DEFAULT_TEST_SIZE) -> ProcessedDataset:
+    def prepare_feature_matrix(
+        self,
+        customer_features: pd.DataFrame,
+        test_size: float = DEFAULT_TEST_SIZE,
+    ) -> ProcessedDataset:
         encoded_df, woe_maps = self.apply_woe_encoding(customer_features)
         return self.split_scale_dataset(encoded_df, woe_maps, test_size=test_size)
 
@@ -454,9 +488,11 @@ class CreditRiskDataPipeline:
         logger.info("Artifacts saved to %s", self.processed_dir)
 
 
-def run_data_processing_pipeline(raw_path: Path = RAW_DATA_PATH,
-                                 processed_dir: Path = PROCESSED_DIR,
-                                 snapshot_date: Optional[datetime] = None) -> ProcessedDataset:
+def run_data_processing_pipeline(
+    raw_path: Path = RAW_DATA_PATH,
+    processed_dir: Path = PROCESSED_DIR,
+    snapshot_date: Optional[datetime] = None,
+) -> ProcessedDataset:
     """Convenience wrapper that executes the full feature pipeline"""
     pipeline = CreditRiskDataPipeline(raw_path=raw_path, processed_dir=processed_dir, snapshot_date=snapshot_date)
     transactions = pipeline.load_transactions()
@@ -466,8 +502,11 @@ def run_data_processing_pipeline(raw_path: Path = RAW_DATA_PATH,
     return dataset
 
 
-def create_preprocessing_pipeline(numerical_cols, categorical_cols,
-                                 strategy='mean'):
+def create_preprocessing_pipeline(
+    numerical_cols: List[str],
+    categorical_cols: List[str],
+    strategy: str = 'mean',
+) -> ColumnTransformer:
     """
     Create a scikit-learn preprocessing pipeline
     
@@ -502,7 +541,7 @@ def create_preprocessing_pipeline(numerical_cols, categorical_cols,
     return preprocessor
 
 
-def load_and_process_data(filepath, target_col='is_high_risk'):
+def load_and_process_data(filepath: str, target_col: str = 'is_high_risk') -> Tuple[pd.DataFrame, Optional[pd.Series]]:
     """
     Load and process data for model training
     
@@ -526,7 +565,7 @@ def load_and_process_data(filepath, target_col='is_high_risk'):
     return X, y
 
 
-def extract_temporal_features(df, date_col='TransactionStartTime'):
+def extract_temporal_features(df: pd.DataFrame, date_col: str = 'TransactionStartTime') -> pd.DataFrame:
     """Extract temporal features from transaction timestamps"""
     df = df.copy()
     df[date_col] = pd.to_datetime(df[date_col])
@@ -537,9 +576,9 @@ def extract_temporal_features(df, date_col='TransactionStartTime'):
     return df
 
 
-def aggregate_features(df):
+def aggregate_features(df: pd.DataFrame) -> pd.DataFrame:
     """Aggregate transaction data to customer level"""
-    def mode_func(x):
+    def mode_func(x: pd.Series) -> float:
         return x.mode()[0] if not x.mode().empty else np.nan
 
     agg_funcs = {
@@ -578,7 +617,7 @@ def aggregate_features(df):
     return customer_df
 
 
-def handle_missing_values(df):
+def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Handle missing values in customer data"""
     df = df.copy()
     cols_to_fill_0 = ['StdAmount', 'Value_std']
@@ -596,7 +635,7 @@ def handle_missing_values(df):
     return df
 
 
-def encode_categorical_features(df):
+def encode_categorical_features(df: pd.DataFrame) -> pd.DataFrame:
     """Encode categorical features"""
     df = df.copy()
     le = LabelEncoder()
@@ -608,7 +647,7 @@ def encode_categorical_features(df):
     return df
 
 
-def normalize_features(df):
+def normalize_features(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize numerical features"""
     df = df.copy()
     scaler = StandardScaler()
@@ -620,7 +659,11 @@ def normalize_features(df):
     return df
 
 
-def woe_transformation(df, target_col, categorical_cols):
+def woe_transformation(
+    df: pd.DataFrame,
+    target_col: str,
+    categorical_cols: List[str],
+) -> Tuple[pd.DataFrame, Dict[str, float]]:
     """Calculate WoE and IV for categorical features"""
     df = df.copy()
     woe_df = pd.DataFrame()

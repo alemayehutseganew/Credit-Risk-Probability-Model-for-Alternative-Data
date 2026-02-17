@@ -8,6 +8,29 @@ An End-to-End Implementation for Building, Deploying, and Automating a Credit Ri
 
 This project implements a comprehensive credit scoring model using behavioral data from an eCommerce platform. By transforming Recency, Frequency, and Monetary (RFM) patterns into a proxy for credit risk, we develop a machine learning system that can assess the creditworthiness of loan applicants and recommend appropriate loan amounts and durations.
 
+## Business Problem
+
+Bati Bank is launching a buy-now-pay-later (BNPL) service with an eCommerce partner, but it lacks historical loan default labels. The business needs a reliable, explainable credit risk scoring system that can screen applicants, recommend loan amounts/durations, and pass regulatory scrutiny (Basel II).
+
+## Solution Overview
+
+- Build a proxy target using RFM clustering to label high-risk vs. low-risk behavior.
+- Engineer customer-level behavioral features and WoE-encode categorical signals for interpretability.
+- Train and track models in MLflow; select a best model and save it for API serving.
+- Deploy an API (FastAPI) and a dashboard (Streamlit) to deliver trustworthy, auditable predictions.
+
+## Key Results
+
+- ROC-AUC (Logistic Regression, WoE): 0.015 (baseline highlights class imbalance challenge).
+- ROC-AUC (Random Forest): 1.000 (overfitting diagnostic; retained for benchmarking, not production).
+- End-to-end MLOps: CI lint/test/build gates, MLflow tracking, and saved artifacts (schema, WoE, preprocessor).
+
+## Business Impact and Success Metrics
+
+- Reduce manual credit review workload by targeting a >=60% automated decision rate for low-risk applicants.
+- Maintain default rate within agreed risk appetite (target <=5% in the first production quarter).
+- Deliver auditable decisions with documented features, thresholds, and model lineage.
+
 ## Business Context
 
 **Organization:** Bati Bank - A leading financial service provider with 10+ years of experience
@@ -173,6 +196,17 @@ venv\Scripts\activate
 pip install -r requirements.txt
 python src/train.py
 ```
+
+## Demo
+
+Run the API and dashboard locally:
+
+```bash
+python -m uvicorn src.api.main:app --reload
+streamlit run streamlit_app.py
+```
+
+Then open http://localhost:8501 and submit a prediction.
 
 ## Project Structure
 
@@ -353,6 +387,23 @@ docker-compose up --build
 |-------|--------:|---------:|----------:|-------:|---------:|-------|
 | Logistic Regression (WoE features) | 0.015 | 0.997 | 0.000 | 0.000 | 0.000 | Interpretable baseline; needs class weighting or resampling to handle the sparse positive class. |
 | Random Forest | 1.000 | 1.000 | 1.000 | 1.000 | 1.000 | Perfect scores indicate overfitting to the proxy target; treat as diagnostic, not production ready. |
+
+## Technical Report
+
+See the report in [reports/final_submission_report.md](reports/final_submission_report.md).
+
+## Future Improvements
+
+- Calibrate the decision threshold with real default outcomes and add post-deployment monitoring.
+- Add fairness audits (e.g., disparate impact analysis) and bias mitigation checks.
+- Expand the dashboard with cohort analysis and drift monitoring.
+- Introduce pipeline orchestration (e.g., Prefect/Airflow) for scheduled retraining.
+
+## Author
+
+Alemayehu Tseganew Tadesse
+
+LinkedIn: https://www.linkedin.com/in/alemayehu-tseganew-tadesse
 
 ## API Specification
 

@@ -213,7 +213,7 @@ class CreditRiskPredictor:
         return results
 
 
-def main():
+def main() -> None:
     """Example usage"""
     logging.basicConfig(level=logging.INFO)
     
